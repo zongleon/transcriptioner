@@ -1,10 +1,13 @@
 import "./style.css";
 import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
+import { Streamlit } from "streamlit-component-lib";
 
 let scale = 1;
 let transcripts = [];
 let deletableRegion = 0;
+let wavesurfer;
+let initial_transcription;
 
 const playpause = document.getElementById("playpause");
 const save = document.getElementById("save");
@@ -12,14 +15,20 @@ const transcription = document.getElementById("transcription");
 
 const regions = RegionsPlugin.create();
 
-const wavesurfer = WaveSurfer.create({
-  container: "#waveform",
-  waveColor: "#FFFFFF",
-  progressColor: "#fbbf24",
-  url: "/TEST1.mp3",
-  plugins: [regions],
-  dragToSeek: true,
-});
+function onRender(event) {
+  const data = event.detail;
+  wavesurfer = WaveSurfer.create({
+    container: "#waveform",
+    waveColor: "#FFFFFF",
+    progressColor: "#fbbf24",
+    url: data.args["audio_path"],
+    plugins: [regions],
+    dragToSeek: true,
+  });
+  initial_transcription = data.args["text_path"];
+
+  Streamlit.setFrameHeight();
+}
 
 function parseTimestamp(tstamp) {
   return Number(tstamp.slice(1, -1));
@@ -52,7 +61,7 @@ function createTranscriptionLine(tscript) {
 function markTranscriptionLine(region, inOut) {
   let ele = document.getElementById("ts-" + region.id);
   if (ele == null) {
-    return
+    return;
   }
   ele.classList.remove("text-[#fbbf24]", "text-gray-400");
   if (inOut == "in") {
@@ -116,9 +125,12 @@ function removeTranscription(id) {
   }
 
   // remove region
-  regions.getRegions().find((value) => {
-    return value.id == id;
-  }).remove();
+  regions
+    .getRegions()
+    .find((value) => {
+      return value.id == id;
+    })
+    .remove();
 }
 
 function saveTranscription() {
@@ -143,12 +155,13 @@ function saveTranscription() {
   // print end
   outstr += `[${wavesurfer.getDuration()}]\n`;
   // save file
-  const blob = new Blob([outstr], { type: 'text/plain' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'transcription.txt';
-  link.click();
-  URL.revokeObjectURL(link.href);
+  // const blob = new Blob([outstr], { type: 'text/plain' });
+  // const link = document.createElement('a');
+  // link.href = URL.createObjectURL(blob);
+  // link.download = 'transcription.txt';
+  // link.click();
+  // URL.revokeObjectURL(link.href);
+  Streamlit.setComponentValue(outstr);
 }
 
 wavesurfer.once("decode", () => {
@@ -158,7 +171,7 @@ wavesurfer.once("decode", () => {
 
   document.addEventListener("keydown", (e) => {
     if (document.activeElement.tagName == "P") {
-      return
+      return;
     }
     if (e.code == "Space" && document.activeElement !== playpause) {
       e.preventDefault();
@@ -183,7 +196,10 @@ wavesurfer.once("decode", () => {
     { passive: false }
   );
 
-  fetch("/TEST1.txt")
+  if (initial_transcription == null) {
+    return;
+  }
+  fetch(initial_transcription)
     .then((res) => res.text())
     .then((text) => {
       const tscripts = text.split("\n");
@@ -213,13 +229,13 @@ regions.enableDragSelection();
 regions.on("region-in", (region) => {
   markTranscriptionLine(region, "in");
   setTimeout(() => {
-    deletableRegion = region.id
+    deletableRegion = region.id;
   }, 50);
 });
 
 regions.on("region-out", (region) => {
   markTranscriptionLine(region, "out");
-  deletableRegion = null
+  deletableRegion = null;
 });
 
 regions.on("region-clicked", (region, e) => {
@@ -236,7 +252,7 @@ regions.on("region-created", (region) => {
       tscript: "[TRANSCRIBE HERE]",
     };
     region.tscript = t.tscript;
-    console.log(regions.getRegions())
+    console.log(regions.getRegions());
     let prevTs = document.getElementById(
       "ts-" + getNextTranscription(t.start).id
     );
@@ -253,10 +269,21 @@ save.addEventListener("click", saveTranscription);
 
 document.addEventListener("keydown", (e) => {
   if (document.activeElement.tagName == "P") {
-    return
+    return;
   }
   if (e.code == "Backspace") {
     e.preventDefault();
-    removeTranscription(deletableRegion)
+    removeTranscription(deletableRegion);
   }
 });
+
+// Attach our `onRender` handler to Streamlit's render event.
+Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+
+// Tell Streamlit we're ready to start receiving data. We won't get our
+// first RENDER_EVENT until we call this function.
+Streamlit.setComponentReady();
+
+// Finally, tell Streamlit to update our initial height. We omit the
+// `height` parameter here to have it default to our scrollHeight.
+Streamlit.setFrameHeight();
