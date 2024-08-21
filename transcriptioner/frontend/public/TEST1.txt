@@ -1,0 +1,91 @@
+[0.000]
+<no-speech>
+[2.275]
+hayi Lovemore
+[3.265]
+<no-speech>
+[5.115]
+<int> kunjani
+[5.835]
+<no-speech>
+[7.805]
+siyaphila mfwethu <int> ake sixoxe kambe sithe sizoyaphi kulezinsuku nam-
+[11.435]
+<no-speech>
+[14.855]
+<int> kambe sithe sizoyaphi kulezinsuku ngangithe sizohamba <breath> siye le
+[18.675]
+<no-speech>
+[21.405]
+<sta> (()) <int> <hes> (())
+[26.075]
+<no-speech>
+[28.365]
+ya uphethiloli <int> wona usuwuthengile <int>
+[30.335]
+<no-speech>
+[34.845]
+(()) plastic
+[35.895]
+<no-speech>
+[37.645]
+oplastic laboplastiki bazosebenza nini
+[39.955]
+<no-speech>
+[43.555]
+<int> wangiqhatha ekuchitheni lowo mgqomo namhlanje
+[45.755]
+<no-speech>
+[49.305]
+ohho kusasa <no-speech> <int> uzobe uyichitha nobani uzobe uyichitha nobani wena kusasa
+[53.405]
+<no-speech>
+[56.655]
+okwazi ukuzabalaza wedwa
+[58.145]
+<no-speech>
+[60.175]
+uzokwazi ukuzabalaza wedwa
+[61.675]
+<no-speech>
+[69.645]
+ohho hayi kungcono ke uma uzokwazi phela kuyafuneka ayikho enye indlela kungenziwa njani
+[73.375]
+<no-speech>
+[77.265]
+okay <no-speech> <int> kodwa ke asazi phela mhlawumbe nami ngizokulekelela kusasa uma <int> sengikuqedile lokho engikwenzayo
+[83.525]
+<no-speech>
+[85.405]
+ngoba phela kuyafuneka ukuthi <no-speech> ukwazi ukuyisebenzi- <int>
+[88.735]
+<no-speech>
+[90.465]
+egarage <int> ungakhohlwa ke ukuthi ngithela uphethiloli ohlaza
+[93.105]
+<no-speech>
+[93.925]
+<sta> ungakhohlwa ke ukuthi ngithela uphethiloli ohlaza
+[97.345]
+<no-speech>
+[99.425]
+ungabheki ke nabesidukisa ngoba esethu uvala i- imessage <breath> thenga upetrol uma ubusu- uthenga upetrol obomvu
+[104.595]
+<no-speech>
+[107.325]
+mmhm ukhululeke nje sisaxoxa uzozwa uma sengiluvalile uzozwa
+[111.135]
+<no-speech>
+[112.675]
+<sta> khul- khululeka <int> sisaxoxa <int>
+[114.875]
+<no-speech>
+[116.535]
+ngithi nikuphi nina manje <int>
+[117.965]
+<no-speech>
+[122.055]
+kuphi
+[122.525]
+<no-speech>
+[126.600]

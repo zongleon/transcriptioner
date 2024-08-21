@@ -1,0 +1,10 @@
+# vite project
+node_modules/
+package-lock.json
+
+# python project
+.venv
+__pycache__/
+
+# other files
+original_files/

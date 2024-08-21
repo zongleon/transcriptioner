@@ -1,0 +1,26 @@
+Metadata-Version: 2.1
+Name: transcriptioner
+Version: 0.0.1
+Summary: Streamlit component for transcribing audio.
+Home-page: 
+Author: Leon Zong
+Author-email: leon@leonzong.com
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: streamlit>=0.63
+Provides-Extra: devel
+Requires-Dist: wheel; extra == "devel"
+
+# transcriptioner
+
+A simple interactive tool to assist human transcribers.
+Using [vite](https://vite.dev/) and [wavesurfer](https://wavesurfer.xyz/).
+Demo file from BABEL dataset.
+
+## See it in action
+
+```sh
+npm install
+npm run dev
+```
