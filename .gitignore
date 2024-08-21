@@ -5,6 +5,7 @@ package-lock.json
 # python project
 .venv
 __pycache__/
+**/*.egg_info/
 
 # other files
 original_files/
