@@ -7,7 +7,10 @@ let scale = 1;
 let transcripts = [];
 let deletableRegion = 0;
 let wavesurfer;
-let initial_transcription;
+let rendered = false;
+let regionColor = "rgba(0, 50, 100, 0.2)";
+let highlightColor = "#fbbf24"
+let unhighlightColor = "#bcbcbc"
 
 const playpause = document.getElementById("playpause");
 const save = document.getElementById("save");
@@ -17,17 +20,146 @@ const regions = RegionsPlugin.create();
 
 function onRender(event) {
   const data = event.detail;
+  style(data);
+  if (!rendered) {
+    firstRender(data);
+    rendered = true;
+  }
+  Streamlit.setFrameHeight(data.args["height"]);
+}
+
+function hexToRgb(hex, alpha) {
+  const bigint = parseInt(hex, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+
+  return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+}
+
+function style(data) {
+  const theme = data.theme
+  highlightColor = theme.primaryColor;
+  document.body.style.backgroundColor = theme.backgroundColor;
+  document.body.style.textColor = theme.textColor;
+  document.body.style.font = theme.font;
+  transcription.style.height = data.args["height"] - 216 + "px";
+  save.style.backgroundColor = theme.primaryColor;
+  playpause.style.backgroundColor = theme.primaryColor;
+  transcription.style.backgroundColor = theme.secondaryBackgroundColor;
+  regionColor = hexToRgb(theme.secondaryBackgroundColor, 0.1);
+}
+
+function firstRender(data) {
   wavesurfer = WaveSurfer.create({
     container: "#waveform",
-    waveColor: "#FFFFFF",
-    progressColor: "#fbbf24",
+    waveColor: data.theme.textColor,
+    progressColor: data.theme.primaryColor,
     url: data.args["audio_path"],
     plugins: [regions],
     dragToSeek: true,
   });
-  initial_transcription = data.args["text_path"];
 
-  Streamlit.setFrameHeight();
+  wavesurfer.once("decode", () => {
+    playpause.addEventListener("click", () => {
+      wavesurfer.playPause();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (document.activeElement.tagName == "P") {
+        return;
+      }
+      if (e.code == "Space" && document.activeElement !== playpause) {
+        e.preventDefault();
+        wavesurfer.playPause();
+      }
+    });
+
+    document.addEventListener(
+      "wheel",
+      (e) => {
+        if (e.target.parentElement.id == "waveform") {
+          e.preventDefault();
+        } else {
+          return;
+        }
+        scale += e.deltaY * -0.01;
+
+        scale = Math.min(Math.max(10, scale), 100);
+
+        wavesurfer.zoom(scale);
+      },
+      { passive: false }
+    );
+
+    if (data.args["text_path"] == null) {
+      return;
+    }
+    fetch(data.args["text_path"])
+      .then((res) => res.text())
+      .then((text) => {
+        const tscripts = text.split("\n");
+        const numTscripts = tscripts.length;
+
+        for (let i = 1; i < numTscripts - 1; i += 2) {
+          if (tscripts[i] == "<no-speech>") {
+            continue;
+          }
+          let t = {
+            start: parseTimestamp(tscripts[i - 1]),
+            end: parseTimestamp(tscripts[i + 1]),
+            color: regionColor,
+            id: i,
+            tscript: tscripts[i],
+          };
+          transcription.appendChild(createTranscriptionLine(t));
+          transcripts.push(t);
+          regions.addRegion(t);
+        }
+      })
+      .catch((e) => console.error(e));
+  });
+
+  wavesurfer.on("interaction", (time) => {
+    markTranscriptionLine(getNextTranscription(time), "in");
+  });
+
+  regions.enableDragSelection();
+
+regions.on("region-in", (region) => {
+  markTranscriptionLine(region, "in");
+  setTimeout(() => {
+    deletableRegion = region.id;
+  }, 50);
+});
+
+regions.on("region-out", (region) => {
+  markTranscriptionLine(region, "out");
+  deletableRegion = null;
+});
+
+regions.on("region-created", (region) => {
+  if (region.id.toString().startsWith("region")) {
+    let t = {
+      start: region.start,
+      end: region.end,
+      color: regionColor,
+      id: region.id,
+      tscript: "[TRANSCRIBE HERE]",
+    };
+    region.tscript = t.tscript;
+    try {
+      let prevTs = document.getElementById(
+        "ts-" + getNextTranscription(t.start).id
+      );
+      transcription.insertBefore(createTranscriptionLine(t), prevTs);
+    } catch (e) {
+      transcription.appendChild(createTranscriptionLine(t));
+    }
+    transcripts.push(t);
+  }
+});
+
 }
 
 function parseTimestamp(tstamp) {
@@ -52,18 +184,22 @@ function createTranscriptionLine(tscript) {
   });
 
   transcriptionElement.addEventListener("click", () => {
-    wavesurfer.setTime(tscript.start);
+    wavesurfer.setTime(tscript.start + 0.01);
   });
 
   return transcriptionElement;
 }
 
 function markTranscriptionLine(region, inOut) {
+  console.log(region);
+  if (region == null) {
+    return;
+  }
   let ele = document.getElementById("ts-" + region.id);
   if (ele == null) {
     return;
   }
-  ele.classList.remove("text-[#fbbf24]", "text-gray-400");
+  ele.style.color = "";
   if (inOut == "in") {
     // set previous transcriptions to out
     for (let tscript of transcripts) {
@@ -76,9 +212,9 @@ function markTranscriptionLine(region, inOut) {
       }
     }
     scrollTranscriptions(region.id);
-    ele.classList.add("text-[#fbbf24]");
+    ele.style.color = highlightColor;
   } else if (inOut == "out") {
-    ele.classList.add("text-gray-400");
+    ele.style.color = unhighlightColor;
   }
 }
 
@@ -163,107 +299,6 @@ function saveTranscription() {
   // URL.revokeObjectURL(link.href);
   Streamlit.setComponentValue(outstr);
 }
-
-wavesurfer.once("decode", () => {
-  playpause.addEventListener("click", () => {
-    wavesurfer.playPause();
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (document.activeElement.tagName == "P") {
-      return;
-    }
-    if (e.code == "Space" && document.activeElement !== playpause) {
-      e.preventDefault();
-      wavesurfer.playPause();
-    }
-  });
-
-  document.addEventListener(
-    "wheel",
-    (e) => {
-      if (e.target.parentElement.id == "waveform") {
-        e.preventDefault();
-      } else {
-        return;
-      }
-      scale += e.deltaY * -0.01;
-
-      scale = Math.min(Math.max(10, scale), 100);
-
-      wavesurfer.zoom(scale);
-    },
-    { passive: false }
-  );
-
-  if (initial_transcription == null) {
-    return;
-  }
-  fetch(initial_transcription)
-    .then((res) => res.text())
-    .then((text) => {
-      const tscripts = text.split("\n");
-      const numTscripts = tscripts.length;
-
-      for (let i = 1; i < numTscripts - 1; i += 2) {
-        if (tscripts[i] == "<no-speech>") {
-          continue;
-        }
-        let t = {
-          start: parseTimestamp(tscripts[i - 1]),
-          end: parseTimestamp(tscripts[i + 1]),
-          color: "rgba(0, 50, 100, 0.2)",
-          id: i,
-          tscript: tscripts[i],
-        };
-        transcription.appendChild(createTranscriptionLine(t));
-        transcripts.push(t);
-        regions.addRegion(t);
-      }
-    })
-    .catch((e) => console.error(e));
-});
-
-regions.enableDragSelection();
-
-regions.on("region-in", (region) => {
-  markTranscriptionLine(region, "in");
-  setTimeout(() => {
-    deletableRegion = region.id;
-  }, 50);
-});
-
-regions.on("region-out", (region) => {
-  markTranscriptionLine(region, "out");
-  deletableRegion = null;
-});
-
-regions.on("region-clicked", (region, e) => {
-  markTranscriptionLine(region, "in");
-});
-
-regions.on("region-created", (region) => {
-  if (region.id.toString().startsWith("region")) {
-    let t = {
-      start: region.start,
-      end: region.end,
-      color: "rgba(0, 50, 100, 0.2)",
-      id: region.id,
-      tscript: "[TRANSCRIBE HERE]",
-    };
-    region.tscript = t.tscript;
-    console.log(regions.getRegions());
-    let prevTs = document.getElementById(
-      "ts-" + getNextTranscription(t.start).id
-    );
-    transcription.insertBefore(createTranscriptionLine(t), prevTs);
-    transcripts.push(t);
-  }
-});
-
-wavesurfer.on("interaction", (time) => {
-  markTranscriptionLine(getNextTranscription(time), "in");
-});
 
 save.addEventListener("click", saveTranscription);
 

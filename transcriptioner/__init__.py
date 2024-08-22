@@ -28,7 +28,7 @@ else:
 
 
 # Create a wrapper function for the component
-def transcriptioner(audio_path=None, text_path=None, key=None):
+def transcriptioner(audio_path=None, text_path=None, height=512, key=None):
     """Create a new instance of the transcriptioner component.
 
     Parameters
@@ -37,6 +37,8 @@ def transcriptioner(audio_path=None, text_path=None, key=None):
         The path to the audio file to be served.
     text_path: str
         The path to the text file to be served.
+    height: int
+        Height, in px, of the transcriptioner component.
     key: str or None
         An optional key that uniquely identifies this component. If this is
         None, and the component's arguments are changed, the component will
@@ -54,7 +56,7 @@ def transcriptioner(audio_path=None, text_path=None, key=None):
     #
     # "default" is a special argument that specifies the initial return
     # value of the component before the user has interacted with it.
-    component_value = _component_func(audio_path, text_path, key=key, default=0)
+    component_value = _component_func(audio_path=audio_path, text_path=text_path, height=height, key=key, default="")
 
     # We could modify the value returned from the component if we wanted.
     # There's no need to do this in our simple example - but it's an option.
