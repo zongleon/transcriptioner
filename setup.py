@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setuptools.setup(
     name="transcriptioner",
-    version="0.0.1",
+    version="0.0.2",
     author="Leon Zong",
     author_email="leon@leonzong.com",
     description="Streamlit component for transcribing audio.",
