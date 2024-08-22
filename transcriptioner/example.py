@@ -7,7 +7,12 @@ from transcriptioner import transcriptioner
 
 st.subheader("Transcriptioner component")
 
-# Create an instance of our component
-tscript = transcriptioner(audio_path="https://leonzong.com/TEST1.mp3", text_path="https://leonzong.com/TEST1.txt")
-st.markdown("The current transcript is:")
-st.markdown(tscript)
+# Create an instance of our component with a prefilled transcription
+tscript = transcriptioner("./TEST1.mp3", "./TEST1.txt", height=512)
+st.markdown("The current saved transcript is:")
+st.markdown(tscript.replace("\n", "\n\n"))
+
+# Create an instance of our component with no prefilled
+tscript = transcriptioner("./TEST1.mp3", height=512)
+st.markdown("The current saved transcript is:")
+st.markdown(tscript.replace("\n", "\n\n"))
