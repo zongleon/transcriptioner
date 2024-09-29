@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="jatos.js"></script>`
     <title>Transcription</title>
   </head>
   <body class="overflow-hidden bg-[#284B63] ">
@@ -11,10 +12,18 @@
       <div id="waveform" class="flex-none w-full"></div>
       <div class="flex-none flex flex-row gap-2">
         <button id="playpause" class="flex-none rounded-full h-10 w-32 bg-[#7289da]">Play / Pause</button>
+        <label>
+          Zoom: <input id="zoom" type="range" min="1" max="100" value="10" />
+        </label>
+        <button id="back-10s" class="flex-none rounded-full h-10 w-16 bg-[#7289da]">Back 10s</button>
+        <button id="fwd-10s" class="flex-none rounded-full h-10 w-16 bg-[#7289da]">Forward 10s</button> 
         <button id="save" class="flex-none rounded-full h-10 w-32 bg-[#7289da]">Save</button>
+        <label>
+          Mark as complete: <input id="completed" type="checkbox"/>
+        </label>
       </div>
       <div id="transcription" class="grow bg-slate-500 text-white text-2xl overflow-y-scroll scroll-smooth rounded pl-2"></div> 
     </div>
-    <script type="module" src="/main.js"></script>
+    <script type="module" src="./main.js"></script>
   </body>
 </html>

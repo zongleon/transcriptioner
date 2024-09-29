@@ -1,0 +1,19 @@
+# python
+.venv/
+*.egg-info/
+__pycache__
+
+# js, build
+node_modules/
+build/
+dist/
+
+# jatos
+jatos_mac_java/*
+!jatos_mac_java/study_assets_root/
+
+# etc
+.DS_Store
+.vscode/
+data/
+original_files/
