@@ -45,13 +45,14 @@ function createTranscriptionLine(tscript) {
   };
 
   transcriptionElement.onclick = () => {
-    wavesurfer.setTime(tscript.start);
+    wavesurfer.setTime(tscript.start + 0.001);
   };
 
   return transcriptionElement;
 }
 
 function markTranscriptionLine(region, inOut) {
+  console.log(`setting ${region.id} to ${inOut}`);
   if (region == null) {
     return;
   }
@@ -59,22 +60,31 @@ function markTranscriptionLine(region, inOut) {
   if (ele == null) {
     return;
   }
-  ele.classList.remove("text-[#fbbf24]", "text-gray-400");
+  ele.classList.remove("text-[#fbbf24]", "text-[#7289da]");
   if (inOut == "in") {
     // set previous transcriptions to out
     for (let tscript of transcripts) {
+      let tsregion = regions.getRegions().find((v) => {
+        return v.id == region.id;
+      });
       if (tscript.start > region.start) {
-        markTranscriptionLine(tscript, "pre");
+        markTranscriptionLine(tsregion, "pre");
       } else if (tscript.start == region.start) {
         continue;
       } else {
-        markTranscriptionLine(tscript, "out");
+        markTranscriptionLine(tsregion, "out");
       }
     }
     scrollTranscriptions(region.id);
     ele.classList.add("text-[#fbbf24]");
+    region.setOptions({
+      color: "rgba(251, 191, 36, 0.3)"
+    })
   } else if (inOut == "out") {
-    ele.classList.add("text-gray-400");
+    ele.classList.add("text-[#7289da]");
+    region.setOptions({
+      color: "rgba(0, 0, 0, 0.3)"
+    })
   }
 }
 
@@ -166,19 +176,26 @@ function saveTranscription() {
   }
 }
 
+function togglePlay() {
+  for (const node of playpause.children) {
+    node.classList.toggle("hidden");
+  }
+  wavesurfer.playPause();
+}
 function initializeWavesurfer(audio, text) {
   wavesurfer = WaveSurfer.create({
     container: "#waveform",
-    waveColor: "#FFFFFF",
-    progressColor: "#fbbf24",
+    waveColor: "rgb(156 163 175)",
+    progressColor: "#7289da",
     url: audio,
     plugins: [regions],
+    minPxPerSec: 100,
     dragToSeek: true,
   });
 
   wavesurfer.once("decode", () => {
     playpause.onclick = () => {
-      wavesurfer.playPause();
+      togglePlay();
     };
 
     zoom.oninput = (e) => {
@@ -197,6 +214,10 @@ function initializeWavesurfer(audio, text) {
     document.onkeydown = (e) => {
       if (document.activeElement.tagName == "P") {
         return;
+      }
+      if (e.code == "Backspace") {
+        e.preventDefault();
+        removeTranscription(deletableRegion);
       }
       if (e.code == "Space" && document.activeElement !== playpause) {
         e.preventDefault();
@@ -232,7 +253,7 @@ function initializeWavesurfer(audio, text) {
       let t = {
         start: parseTimestamp(tscripts[i - 1]),
         end: parseTimestamp(tscripts[i + 1]),
-        color: "rgba(0, 50, 100, 0.2)",
+        color: "rgba(251, 191, 36, 0.3)",
         id: i,
         tscript: tscripts[i],
       };
@@ -242,7 +263,9 @@ function initializeWavesurfer(audio, text) {
     }
   });
 
-  regions.enableDragSelection();
+  regions.enableDragSelection({
+    color: "rgba(251, 191, 36, 0.3)"
+  });
 
   regions.on("region-in", (region) => {
     markTranscriptionLine(region, "in");
@@ -265,7 +288,7 @@ function initializeWavesurfer(audio, text) {
       let t = {
         start: region.start,
         end: region.end,
-        color: "rgba(0, 50, 100, 0.2)",
+        color: "rgba(251, 191, 36, 0.3)",
         id: region.id,
         tscript: "[TRANSCRIBE HERE]",
       };
@@ -291,7 +314,10 @@ function initializeWavesurfer(audio, text) {
   });
 
   wavesurfer.on("interaction", (time) => {
-    markTranscriptionLine(getNextTranscription(time), "in");
+    let tsregion = regions.getRegions().find((v) => {
+      return v.id == getNextTranscription(time).id;
+    });
+    markTranscriptionLine(tsregion, "in");
   });
 }
 
@@ -301,16 +327,6 @@ save.onclick = () => {
     save.innerHTML = "Save";
   }, 3000);
   saveTranscription();
-};
-
-document.onkeydown = (e) => {
-  if (document.activeElement.tagName == "P") {
-    return;
-  }
-  if (e.code == "Backspace") {
-    e.preventDefault();
-    removeTranscription(deletableRegion);
-  }
 };
 
 jatos.onLoad(() => {
