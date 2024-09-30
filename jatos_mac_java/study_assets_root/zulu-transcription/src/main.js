@@ -5,7 +5,10 @@ import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
 const BUCKET_URL = "https://cdn.leonzong.com/";
 
 let transcripts = [];
-let deletableRegion = 0;
+let activeRegion = 0;
+let looping = false;
+
+const speeds = [0.25, 0.5, 0.75, 1];
 
 const playpause = document.getElementById("playpause");
 const save = document.getElementById("save");
@@ -13,12 +16,18 @@ const transcription = document.getElementById("transcription");
 const zoom = document.getElementById("zoom");
 const back = document.getElementById("back-10s");
 const fwd = document.getElementById("fwd-10s");
+const seekstart = document.getElementById("seekstart");
+const seekend = document.getElementById("seekend");
+const loop = document.getElementById("loop");
+const speed = document.getElementById("speed");
+const rate = document.getElementById("rate");
 const completed = document.getElementById("completed");
 
 const regions = RegionsPlugin.create();
 
 let wavesurfer;
 let startTime;
+let id;
 let data;
 let currentTranscription;
 
@@ -29,7 +38,7 @@ function parseTimestamp(tstamp) {
 function createTranscriptionLine(tscript) {
   let transcriptionElement = document.createElement("p");
   transcriptionElement.id = "ts-" + tscript.id;
-  transcriptionElement.className = "mt-2 ";
+  transcriptionElement.className = "mt-2";
   transcriptionElement.innerHTML = tscript.tscript;
   transcriptionElement.ondblclick = () => {
     transcriptionElement.setAttribute("contenteditable", "true");
@@ -45,46 +54,94 @@ function createTranscriptionLine(tscript) {
   };
 
   transcriptionElement.onclick = () => {
-    wavesurfer.setTime(tscript.start + 0.001);
+    // mark this region
+    markTranscriptionLine(
+      regions.getRegions().find((v) => {
+        return v.id == tscript.id;
+      })
+    );
+
+    // seek to it as well
+    wavesurfer.setTime(tscript.start);
   };
 
   return transcriptionElement;
 }
 
-function markTranscriptionLine(region, inOut) {
-  console.log(`setting ${region.id} to ${inOut}`);
-  if (region == null) {
-    return;
-  }
-  let ele = document.getElementById("ts-" + region.id);
-  if (ele == null) {
-    return;
-  }
-  ele.classList.remove("text-[#fbbf24]", "text-[#7289da]");
-  if (inOut == "in") {
-    // set previous transcriptions to out
-    for (let tscript of transcripts) {
-      let tsregion = regions.getRegions().find((v) => {
-        return v.id == region.id;
-      });
-      if (tscript.start > region.start) {
-        markTranscriptionLine(tsregion, "pre");
-      } else if (tscript.start == region.start) {
+function markTranscriptionLine(region, markCurrent = true) {
+  if (region === undefined || region == null) {
+    // clear styles
+    for (const tscript of transcripts) {
+      // get matching transcription line
+      let tstrans = document.getElementById("ts-" + tscript.id);
+      if (tstrans == null) {
+        console.log(
+          `invalid tscript in transcripts list: id ${tscript.id}, skipping`
+        );
         continue;
-      } else {
-        markTranscriptionLine(tsregion, "out");
       }
+
+      // get matching transcription region
+      let tsregion = regions.getRegions().find((v) => {
+        return v.id == tscript.id;
+      });
+
+      // gray it all out
+      tstrans.classList.remove("text-[#fbbf24]");
+      tstrans.classList.add("text-[#7289da]");
+      tsregion.setOptions({
+        color: "rgba(114, 137, 218, 0.3)",
+      });
     }
-    scrollTranscriptions(region.id);
-    ele.classList.add("text-[#fbbf24]");
-    region.setOptions({
-      color: "rgba(251, 191, 36, 0.3)"
-    })
-  } else if (inOut == "out") {
-    ele.classList.add("text-[#7289da]");
-    region.setOptions({
-      color: "rgba(0, 0, 0, 0.3)"
-    })
+    return;
+  }
+
+  // loop through all transcripts
+  for (const tscript of transcripts) {
+    // get matching transcription line
+    let tstrans = document.getElementById("ts-" + tscript.id);
+    if (tstrans == null) {
+      console.log(
+        `invalid tscript in transcripts list: id ${tscript.id}, skipping`
+      );
+      continue;
+    }
+
+    // get matching transcription region
+    let tsregion = regions.getRegions().find((v) => {
+      return v.id == tscript.id;
+    });
+
+    tstrans.classList.remove("text-[#fbbf24]", "text-[#7289da]");
+    // process transcription styles
+    if (
+      tsregion.start > region.end ||
+      (tsregion.start == region.start && !markCurrent)
+    ) {
+      // other transcript starts after our transcript ends
+      // then set the color to nothing
+      tsregion.setOptions({
+        color: "rgba(0, 0, 0, 0.2)",
+      });
+    } else if (tsregion.start == region.start && markCurrent) {
+      // this transcript should be marked as gold
+      scrollTranscriptions(tsregion.id);
+      tstrans.classList.add("text-[#fbbf24]");
+      tsregion.setOptions({
+        color: "rgba(251, 191, 36, 0.3)",
+      });
+    } else if (tsregion.end < region.start) {
+      // other trancsript ends before our transcript starts
+      // then set the color to grayed out
+      tstrans.classList.add("text-[#7289da]");
+      tsregion.setOptions({
+        color: "rgba(114, 137, 218, 0.3)",
+      });
+    } else {
+      console.error(
+        `something wrong happened with transcripts ${tscript.id}, ${region.id}`
+      );
+    }
   }
 }
 
@@ -155,7 +212,7 @@ function saveTranscription() {
     outstr += `<no-speech>\n`;
   }
   // print end
-  outstr += `[${wavesurfer.getDuration()}]\n`;
+  outstr += `[${wavesurfer.getDuration().toFixed(3)}]\n`;
   // save file
   const blob = new Blob([outstr], { type: "text/plain" });
 
@@ -172,7 +229,7 @@ function saveTranscription() {
       })
       .then(() => console.log("Batch Session was successfully updated"))
       .catch(() => console.log("Batch Session synchronization failed"));
-    jatos.submitResultData({ start: startTime, finish: Date.now() });
+    jatos.submitResultData({ start: startTime, finish: Date.now(), id: id });
   }
 }
 
@@ -182,6 +239,7 @@ function togglePlay() {
   }
   wavesurfer.playPause();
 }
+
 function initializeWavesurfer(audio, text) {
   wavesurfer = WaveSurfer.create({
     container: "#waveform",
@@ -204,11 +262,30 @@ function initializeWavesurfer(audio, text) {
     };
 
     fwd.onclick = () => {
-      wavesurfer.skip(10);
+      wavesurfer.skip(5);
     };
 
     back.onclick = () => {
-      wavesurfer.skip(-10);
+      wavesurfer.skip(5);
+    };
+
+    seekstart.onclick = () => {
+      wavesurfer.setTime(0);
+    };
+
+    seekend.onclick = () => {
+      wavesurfer.setTime(wavesurfer.getDuration());
+    };
+
+    loop.onclick = () => {
+      loop.classList.toggle("text-[#fbbf24]");
+      looping = !looping;
+    };
+
+    speed.oninput = (e) => {
+      const s = speeds[e.target.valueAsNumber];
+      rate.textContent = s.toFixed(2);
+      wavesurfer.setPlaybackRate(s, true);
     };
 
     document.onkeydown = (e) => {
@@ -217,11 +294,11 @@ function initializeWavesurfer(audio, text) {
       }
       if (e.code == "Backspace") {
         e.preventDefault();
-        removeTranscription(deletableRegion);
+        removeTranscription(activeRegion);
       }
       if (e.code == "Space" && document.activeElement !== playpause) {
         e.preventDefault();
-        wavesurfer.playPause();
+        togglePlay();
       }
     };
 
@@ -253,7 +330,7 @@ function initializeWavesurfer(audio, text) {
       let t = {
         start: parseTimestamp(tscripts[i - 1]),
         end: parseTimestamp(tscripts[i + 1]),
-        color: "rgba(251, 191, 36, 0.3)",
+        color: "rgba(0, 0, 0, 0.2)",
         id: i,
         tscript: tscripts[i],
       };
@@ -264,23 +341,37 @@ function initializeWavesurfer(audio, text) {
   });
 
   regions.enableDragSelection({
-    color: "rgba(251, 191, 36, 0.3)"
+    color: "rgba(251, 191, 36, 0.3)",
   });
 
   regions.on("region-in", (region) => {
-    markTranscriptionLine(region, "in");
     setTimeout(() => {
-      deletableRegion = region.id;
+      markTranscriptionLine(region);
     }, 50);
+    activeRegion = region.id;
   });
 
   regions.on("region-out", (region) => {
-    markTranscriptionLine(region, "out");
-    deletableRegion = null;
+    // mark the next region
+    let nextTs = getNextTranscription(region.end);
+    let tsregion = null;
+    if (nextTs != null) {
+      tsregion = regions.getRegions().find((v) => {
+        return v.id == nextTs.id;
+      });
+    }
+    markTranscriptionLine(tsregion, false);
+    if (activeRegion === region.id) {
+      if (looping && wavesurfer.isPlaying()) {
+        region.play();
+      } else {
+        activeRegion = null;
+      }
+    }
   });
 
   regions.on("region-clicked", (region, e) => {
-    markTranscriptionLine(region, "in");
+    activeRegion = region.id;
   });
 
   regions.on("region-created", (region) => {
@@ -314,10 +405,20 @@ function initializeWavesurfer(audio, text) {
   });
 
   wavesurfer.on("interaction", (time) => {
-    let tsregion = regions.getRegions().find((v) => {
-      return v.id == getNextTranscription(time).id;
-    });
-    markTranscriptionLine(tsregion, "in");
+    let nextTs = getNextTranscription(time);
+    let tsregion = null;
+    if (nextTs != null) {
+      tsregion = regions.getRegions().find((v) => {
+        return v.id == nextTs.id;
+      });
+    }
+    for (let tscript of transcripts) {
+      if (time > tscript.start && time < tscript.end) {
+        return;
+      }
+    }
+    activeRegion = null;
+    markTranscriptionLine(tsregion, false);
   });
 }
 
@@ -340,6 +441,7 @@ jatos.onLoad(() => {
       jatos.startComponentByPos(1, {
         start: startTime,
         finish: Date.now(),
+        id: id,
       });
     },
   });
@@ -349,7 +451,7 @@ jatos.onLoad(() => {
   }
 
   // from previous component
-  const id = jatos.studySessionData.id;
+  id = jatos.studySessionData.id;
   currentTranscription = jatos.studySessionData.transcription;
 
   // get data like {current: str, status: str}
