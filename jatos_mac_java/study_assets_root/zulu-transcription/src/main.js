@@ -1,14 +1,16 @@
 import "../styles/style.css";
 import WaveSurfer from "wavesurfer.js";
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
+import ProgressBar from "progressbar.js";
 
 const BUCKET_URL = "https://cdn.leonzong.com/";
 
 let transcripts = [];
 let activeRegion = 0;
 let looping = false;
+let playingRegion = false;
 
-const speeds = [0.25, 0.5, 0.75, 1];
+const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 const playpause = document.getElementById("playpause");
 const save = document.getElementById("save");
@@ -18,14 +20,15 @@ const back = document.getElementById("back-10s");
 const fwd = document.getElementById("fwd-10s");
 const seekstart = document.getElementById("seekstart");
 const seekend = document.getElementById("seekend");
+const playregion = document.getElementById("play-region");
 const loop = document.getElementById("loop");
 const speed = document.getElementById("speed");
-const rate = document.getElementById("rate");
 const completed = document.getElementById("completed");
 
 const regions = RegionsPlugin.create();
 
 let wavesurfer;
+let bar;
 let startTime;
 let id;
 let data;
@@ -233,11 +236,41 @@ function saveTranscription() {
   }
 }
 
-function togglePlay() {
+function setPlayPauseIcon(showPlay) {
   for (const node of playpause.children) {
-    node.classList.toggle("hidden");
+    if (node.classList.contains("play") && showPlay) {
+      node.classList.remove("hidden");
+    } else if (node.classList.contains("play") && !showPlay) {
+      node.classList.add("hidden");
+    } else if (node.classList.contains("pause") && showPlay) {
+      node.classList.add("hidden");
+    } else {
+      node.classList.remove("hidden");
+    }
   }
+}
+
+function togglePlay() {
   wavesurfer.playPause();
+  setPlayPauseIcon(!wavesurfer.isPlaying());
+  playingRegion = false;
+}
+
+function playRegion() {
+  if (activeRegion == null) {
+    return;
+  }
+  // remove from tscripts list
+  let region = transcripts.find((value) => {
+    return value.id == activeRegion;
+  });
+
+  console.log("playing region " + activeRegion + " from time " + region.start);
+  
+  wavesurfer.setTime(region.start + 0.001);
+  wavesurfer.play();
+  setPlayPauseIcon(false);
+  playingRegion = true;
 }
 
 function initializeWavesurfer(audio, text) {
@@ -251,7 +284,31 @@ function initializeWavesurfer(audio, text) {
     dragToSeek: true,
   });
 
+  // progress bar
+  wavesurfer.on("load", (url) => {
+    bar = new ProgressBar.Line("#waveform", {
+      strokeWidth: 4,
+      easing: "easeInOut",
+      duration: 100,
+      color: "#FFEA82",
+      trailColor: "#eee",
+      trailWidth: 1,
+      svgStyle: { width: "20%", height: "20%" },
+      from: { color: "#FFEA82" },
+      to: { color: "#ED6A5A" },
+      step: (state, bar) => {
+        bar.setText(Math.round(bar.value() * 100) + " %");
+      },
+    });
+  });
+
+  // animate pbar
+  wavesurfer.on("loading", (percent) => {
+    bar.animate(percent / 100);
+  });
+
   wavesurfer.once("decode", () => {
+    bar.destroy();
     playpause.onclick = () => {
       togglePlay();
     };
@@ -266,7 +323,7 @@ function initializeWavesurfer(audio, text) {
     };
 
     back.onclick = () => {
-      wavesurfer.skip(5);
+      wavesurfer.skip(-5);
     };
 
     seekstart.onclick = () => {
@@ -280,11 +337,15 @@ function initializeWavesurfer(audio, text) {
     loop.onclick = () => {
       loop.classList.toggle("text-[#fbbf24]");
       looping = !looping;
+      if (looping) {
+
+      }
     };
 
-    speed.oninput = (e) => {
-      const s = speeds[e.target.valueAsNumber];
-      rate.textContent = s.toFixed(2);
+    playregion.onclick = playRegion;
+
+    speed.onchange = (e) => {
+      const s = Number(e.target.value);
       wavesurfer.setPlaybackRate(s, true);
     };
 
@@ -301,24 +362,6 @@ function initializeWavesurfer(audio, text) {
         togglePlay();
       }
     };
-
-    // document.addEventListener(
-    //   "wheel",
-    //   (e) => {
-    //     if (e.target.parentElement != null && e.target.parentElement.id == "waveform") {
-    //       e.preventDefault();
-    //     } else {
-    //       return;
-    //     }
-    //     scale += e.deltaY * -1;
-
-    //     scale = Math.min(Math.max(1, scale), 100);
-
-    //     wavesurfer.zoom(scale);
-    //     zoom.value = scale;
-    //   },
-    //   { passive: false }
-    // );
 
     const tscripts = text.split("\n");
     const numTscripts = tscripts.length;
@@ -361,11 +404,18 @@ function initializeWavesurfer(audio, text) {
       });
     }
     markTranscriptionLine(tsregion, false);
+
+    // handle looping
     if (activeRegion === region.id) {
       if (looping && wavesurfer.isPlaying()) {
         region.play();
       } else {
-        activeRegion = null;
+        if (playingRegion) {
+          wavesurfer.pause();
+          setPlayPauseIcon(true);
+        } else {
+          activeRegion = null;
+        }
       }
     }
   });
@@ -394,6 +444,7 @@ function initializeWavesurfer(audio, text) {
 
       transcripts.push(t);
     }
+    wavesurfer.setTime(region.start);
   });
 
   regions.on("region-updated", (region) => {
@@ -429,6 +480,19 @@ save.onclick = () => {
   }, 3000);
   saveTranscription();
 };
+
+speeds.forEach((s) => {
+  const option = document.createElement("option");
+  option.value = s;
+  option.textContent = `${s}x`;
+
+  // Optionally set the default selected value
+  if (s === 1) {
+    option.selected = true;
+  }
+
+  speed.appendChild(option);
+});
 
 jatos.onLoad(() => {
   jatos.addAbortButton({
