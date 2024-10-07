@@ -27,7 +27,7 @@ if (jatos !== undefined) {
     // handle alias recording
     if (alias === undefined && jatos.studySessionData.id === undefined) {
       showMakeAlias(id);
-    } else if (jatos.studySessionData.id !== undefined) {
+    } else if (jatos.studySessionData.alias !== undefined) {
       showAliasWelcome(jatos.studySessionData.id, jatos.studySessionData.alias);
     } else {
       showAliasWelcome(id, alias);
@@ -75,7 +75,7 @@ function addItem(idx, name, status) {
   const itemName = newItem.querySelector(".item-name");
   const itemStatus = newItem.querySelector(".item-status");
 
-  itemName.innerHTML = name;
+  itemName.innerHTML = "Audio " + idx;
   itemStatus.innerHTML = status;
 
   switch (status) {
@@ -88,16 +88,17 @@ function addItem(idx, name, status) {
     default:
       itemStatus.classList.add("text-rose-600");
   }
- 
+
   newItem.onclick = (e) => {
     if (jatos === undefined) {
-        return;
+      return;
     }
     jatos.studySessionData = {
-        id: id,
-        alias: alias,
-        transcription: name,
-    }
+      id: id,
+      alias: alias,
+      transcription: name,
+      status: status,
+    };
     jatos.startNextComponent();
   };
 
@@ -109,8 +110,12 @@ function showItemList() {
     return;
   }
 
-  const items = jatos.studyJsonInput;
+  const items = jatos.studyJsonInput[id];
 
+  if (items === undefined) {
+    aliasWelcome.innerHTML += "You have no items to complete.";
+    return;
+  }
   let itemIdx = 0;
   for (const i of items) {
     let item = jatos.batchSession.get(i.replace("/", "\\"));

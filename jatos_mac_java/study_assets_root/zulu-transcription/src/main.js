@@ -266,7 +266,7 @@ function playRegion() {
   });
 
   console.log("playing region " + activeRegion + " from time " + region.start);
-  
+
   wavesurfer.setTime(region.start + 0.001);
   wavesurfer.play();
   setPlayPauseIcon(false);
@@ -290,12 +290,10 @@ function initializeWavesurfer(audio, text) {
       strokeWidth: 4,
       easing: "easeInOut",
       duration: 100,
-      color: "#FFEA82",
+      color: "#7289da",
       trailColor: "#eee",
       trailWidth: 1,
-      svgStyle: { width: "20%", height: "20%" },
-      from: { color: "#FFEA82" },
-      to: { color: "#ED6A5A" },
+      svgStyle: { width: "100%", height: "50%" },
       step: (state, bar) => {
         bar.setText(Math.round(bar.value() * 100) + " %");
       },
@@ -338,7 +336,9 @@ function initializeWavesurfer(audio, text) {
       loop.classList.toggle("text-[#fbbf24]");
       looping = !looping;
       if (looping) {
-
+        playregion.innerHTML = "Loop Region";
+      } else {
+        playregion.innerHTML = "Play Region";
       }
     };
 
@@ -517,6 +517,9 @@ jatos.onLoad(() => {
   // from previous component
   id = jatos.studySessionData.id;
   currentTranscription = jatos.studySessionData.transcription;
+
+  // preload checkbox
+  completed.checked = jatos.studySessionData.status == "COMPLETED";
 
   // get data like {current: str, status: str}
   data = jatos.batchSession.get(currentTranscription.replace("/", "\\"));
