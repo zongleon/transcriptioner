@@ -148,17 +148,19 @@ def region_mark(file, output_dir, vad):
 
     # setup audio read
     audio, sample_rate, total_len = read_wave(file)
-    frames = frame_generator(10, audio, sample_rate)
+    frames = frame_generator(30, audio, sample_rate)
     frames = list(frames)
-    segments = vad_collector(sample_rate, 10, 100, vad, frames)
+    segments = list(vad_collector(sample_rate, 30, 240, vad, frames))
     with open(output_path, "w") as f:
         # write transcripts
-        f.write("[0.000]\n")
-        f.write("<no-speech>\n")
+        s0, _ = segments[0]
+        if f"{s0:.3f}" != "0.000":
+            f.write("[0.000]\n")
+            f.write("<no-speech>\n")
         for i, (segment_start, segment_end) in enumerate(segments):
             f.write(f"[{segment_start:.3f}]\n")
-            f.write(f"Speech {i}\n")
-            f.write(f"[{segment_end}]\n")
+            f.write("[TRANSCRIBE HERE]\n")
+            f.write(f"[{segment_end:.3f}]\n")
             f.write("<no-speech>\n")
         f.write(f"[{total_len:.3f}]\n")
 
@@ -180,11 +182,12 @@ def process_audio_directory(input_dir, output_dir, vad):
             if file.endswith(".wav"):
                 file_path = os.path.join(root, file)
                 region_mark(file_path, output_subdir, vad)
+                print(f"Marked: {file_path}")
 
 
 if __name__ == "__main__":
 
-    vad = webrtcvad.Vad()
+    vad = webrtcvad.Vad(3)
 
     input_dir = "../processed/"
     output_dir = "../processed/"

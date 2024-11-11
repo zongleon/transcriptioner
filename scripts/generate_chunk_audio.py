@@ -1,9 +1,11 @@
 import os
-from pydub import AudioSegment
+from pydub import AudioSegment, effects
 
 # Function to chunk audio into 5-minute segments and convert to .wav
 def chunk_audio(file_path, output_dir, chunk_length_ms=5*60*1000):
     audio = AudioSegment.from_file(file_path)
+    audio = effects.normalize(audio)
+    audio = audio.set_channels(1)
     duration_ms = len(audio)
     
     # Convert to .wav and chunk if necessary
@@ -40,7 +42,7 @@ def process_audio_directory(input_dir, output_dir):
                 chunk_audio(file_path, output_subdir)
 
 # Example usage
-input_directory = '../data/'  # Replace with your input directory path
-output_directory = '../processed/'  # Replace with your output directory path
+input_directory = '../data/'
+output_directory = '../processed/'
 
 process_audio_directory(input_directory, output_directory)

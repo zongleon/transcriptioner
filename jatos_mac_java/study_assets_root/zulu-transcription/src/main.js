@@ -14,6 +14,7 @@ const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5];
 
 const playpause = document.getElementById("playpause");
 const save = document.getElementById("save");
+const savequit = document.getElementById("savequit");
 const transcription = document.getElementById("transcription");
 const zoom = document.getElementById("zoom");
 const back = document.getElementById("back-10s");
@@ -38,6 +39,22 @@ function parseTimestamp(tstamp) {
   return Number(tstamp.slice(1, -1));
 }
 
+function verifyRegionBounds(id, start, end) {
+  for (let checkReg of transcripts) {
+    if (checkReg.id == id) {
+      continue;
+    }
+    console.log(checkReg.start, start, end, checkReg.end);
+    if (checkReg.start <= start && start <= checkReg.end) {
+      return false;
+    }
+    if (checkReg.start <= end && end <= checkReg.end) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function createTranscriptionLine(tscript) {
   let transcriptionElement = document.createElement("p");
   transcriptionElement.id = "ts-" + tscript.id;
@@ -50,6 +67,9 @@ function createTranscriptionLine(tscript) {
   };
 
   transcriptionElement.onblur = () => {
+    if (transcriptionElement.textContent == "") {
+      transcriptionElement.textContent = "[TRANSCRIBE HERE]";
+    }
     transcriptionElement.removeAttribute("contenteditable");
     transcripts.find((value) => {
       return value.id == tscript.id;
@@ -136,7 +156,6 @@ function markTranscriptionLine(region, markCurrent = true) {
     } else if (tsregion.end < region.start) {
       // other trancsript ends before our transcript starts
       // then set the color to grayed out
-      tstrans.classList.add("text-[#7289da]");
       tsregion.setOptions({
         color: "rgba(114, 137, 218, 0.3)",
       });
@@ -173,8 +192,24 @@ function scrollTranscriptions(toId) {
   });
   let scrollid = tspos >= 3 ? tspos - 3 : 0;
   let ele = document.getElementById("ts-" + transcripts[scrollid].id);
-  let pos = ele.offsetTop - 216;
-  transcription.scrollTop = pos;
+
+  // Get the position of the target element relative to the scrollable container
+  let containerRect = transcription.getBoundingClientRect();
+  let elementRect = ele.getBoundingClientRect();
+
+  // Calculate the desired scroll position
+  let scrollTop = elementRect.top - containerRect.top + transcription.scrollTop;
+
+  // Ensure the element is at least partially visible
+  if (scrollTop < transcription.scrollTop) {
+  } else if (
+    scrollTop + elementRect.height >
+    transcription.scrollTop + transcription.clientHeight
+  ) {
+    scrollTop = scrollTop - transcription.clientHeight + elementRect.height;
+  }
+
+  transcription.scrollTop = scrollTop;
 }
 
 function removeTranscription(id) {
@@ -191,12 +226,14 @@ function removeTranscription(id) {
   }
 
   // remove region
-  regions
-    .getRegions()
-    .find((value) => {
-      return value.id == id;
-    })
-    .remove();
+  setTimeout(() => {
+    regions
+      .getRegions()
+      .find((value) => {
+        return value.id == id;
+      })
+      .remove();
+  }, 50);
 }
 
 function saveTranscription() {
@@ -265,7 +302,7 @@ function playRegion() {
     return value.id == activeRegion;
   });
 
-  console.log("playing region " + activeRegion + " from time " + region.start);
+  // console.log("playing region " + activeRegion + " from time " + region.start);
 
   wavesurfer.setTime(region.start + 0.001);
   wavesurfer.play();
@@ -351,11 +388,18 @@ function initializeWavesurfer(audio, text) {
 
     document.onkeydown = (e) => {
       if (document.activeElement.tagName == "P") {
+        if (e.code == "Enter") {
+          e.preventDefault();
+          document.activeElement.blur();
+        }
         return;
       }
       if (e.code == "Backspace") {
         e.preventDefault();
         removeTranscription(activeRegion);
+      }
+      if (e.code == "KeyD") {
+        console.log(transcripts);
       }
       if (e.code == "Space" && document.activeElement !== playpause) {
         e.preventDefault();
@@ -381,6 +425,8 @@ function initializeWavesurfer(audio, text) {
       transcripts.push(t);
       regions.addRegion(t);
     }
+
+    wavesurfer.setTime(0);
   });
 
   regions.enableDragSelection({
@@ -409,13 +455,11 @@ function initializeWavesurfer(audio, text) {
     if (activeRegion === region.id) {
       if (looping && wavesurfer.isPlaying()) {
         region.play();
+      } else if (playingRegion) {
+        wavesurfer.pause();
+        setPlayPauseIcon(true);
       } else {
-        if (playingRegion) {
-          wavesurfer.pause();
-          setPlayPauseIcon(true);
-        } else {
-          activeRegion = null;
-        }
+        activeRegion = null;
       }
     }
   });
@@ -434,6 +478,9 @@ function initializeWavesurfer(audio, text) {
         tscript: "[TRANSCRIBE HERE]",
       };
       region.tscript = t.tscript;
+      transcripts.push(t);
+
+      // figure out where to insert the transcription line
       let nextTs = getNextTranscription(t.start);
       if (nextTs == null) {
         transcription.appendChild(createTranscriptionLine(t));
@@ -441,8 +488,12 @@ function initializeWavesurfer(audio, text) {
         let prevTs = document.getElementById("ts-" + nextTs.id);
         transcription.insertBefore(createTranscriptionLine(t), prevTs);
       }
-
-      transcripts.push(t);
+      // verify the region does not overlap
+      if (!verifyRegionBounds(region.id, region.start, region.end)) {
+        alert("Please ensure your region does NOT overlap any other regions.");
+        removeTranscription(region.id);
+        return;
+      }
     }
     wavesurfer.setTime(region.start);
   });
@@ -451,6 +502,14 @@ function initializeWavesurfer(audio, text) {
     let update = transcripts.find((v) => {
       return v.id == region.id;
     });
+    if (!verifyRegionBounds(region.id, region.start, region.end)) {
+      alert("Please ensure your region does NOT overlap any other regions.");
+      region.setOptions({
+        start: update.start,
+        end: update.end,
+      });
+      return;
+    }
     update.start = region.start;
     update.end = region.end;
   });
@@ -481,6 +540,16 @@ save.onclick = () => {
   saveTranscription();
 };
 
+savequit.onclick = () => {
+  savequit.innerHTML = "Saved ✅";
+  saveTranscription();
+  jatos.startComponentByPos(1, {
+    start: startTime,
+    finish: Date.now(),
+    id: id,
+  });
+};
+
 speeds.forEach((s) => {
   const option = document.createElement("option");
   option.value = s;
@@ -495,21 +564,6 @@ speeds.forEach((s) => {
 });
 
 jatos.onLoad(() => {
-  jatos.addAbortButton({
-    text: "Return to menu",
-    confirm: false,
-    tooltip: "Saves the current transcription and returns to menu",
-    msg: "User returned to menu",
-    action: () => {
-      saveTranscription();
-      jatos.startComponentByPos(1, {
-        start: startTime,
-        finish: Date.now(),
-        id: id,
-      });
-    },
-  });
-
   if (jatos.studySessionData === undefined || jatos.studySessionData == null) {
     jatos.endStudy("NO SESSION DATA");
   }
@@ -523,11 +577,25 @@ jatos.onLoad(() => {
 
   // get data like {current: str, status: str}
   data = jatos.batchSession.get(currentTranscription.replace("/", "\\"));
+  console.log(data);
 
   if (data !== undefined) {
-    initializeWavesurfer("./dist/" + currentTranscription, data.transcription);
+    initializeWavesurfer(BUCKET_URL + currentTranscription, data.transcription);
   } else {
-    initializeWavesurfer("./dist/" + currentTranscription, "");
+    let starterText = currentTranscription.split(".")[0] + ".txt";
+    fetch(BUCKET_URL + starterText)
+      .then((response) => {
+        if (response.ok) {
+          return response.text();
+        }
+        throw new Error("Something went wrong");
+      })
+      .then((text) => {
+        initializeWavesurfer(BUCKET_URL + currentTranscription, text);
+      })
+      .catch((error) => {
+        initializeWavesurfer(BUCKET_URL + currentTranscription, "");
+      });
   }
 
   // keep start time to upload total time transcriptioning as result

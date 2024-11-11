@@ -52,7 +52,7 @@ function showAliasWelcome(id, alias) {
   aliasInput.classList.add("hidden");
   aliasDisplay.classList.remove("hidden");
 
-  aliasWelcome.innerHTML = `Welcome, transcriber ${id} (${alias})! Choose any item to get started.`;
+  aliasWelcome.innerHTML = `Welcome, transcriber ${id} (${alias})! Choose any item to get started.<br/>`;
 
   showItemList();
 }
