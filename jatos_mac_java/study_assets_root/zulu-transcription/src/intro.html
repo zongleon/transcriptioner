@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="jatos.js"></script>`
+    <title>Transcription</title>
+  </head>
+  <body class="h-screen flex bg-[#284B63]"></body>
+    <div class="w-1/2 flex items-center justify-center p-6 border-r border-gray-300">
+        <div id="alias-display" class="flex">
+            <h2 id="alias-welcome" class="text-lg text-white font-semibold">Welcome back, transcriber ID (alias)!</h2>
+        </div>
+        <div id="alias-input" class="flex space-x-4">
+            <h2 id="alias-prompt" class="text-lg text-white font-semibold">Hello, transcriber ID! Please enter your name or other alias.</h2>
+            <input 
+                id="alias-text-box"
+                type="text" 
+                placeholder="Enter text" 
+                class="border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button 
+                id="alias-submit"
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:outline-none"
+            >
+                Submit
+            </button>
+        </div>
+    </div>
+
+    <div class="w-1/2 p-6 overflow-y-auto">
+        <div id="item-list" class="space-y-4">
+            <!-- Item template -->
+            <div id="item-templ" class="p-4 border rounded-lg cursor-pointer bg-gray-100 hover:bg-[#fbbf24] hidden">
+                <h2 class="item-name text-lg font-semibold">Item 1</h2>
+                <p class="item-status">Status: Not Started</p>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="./intro.js"></script>
+</body>
+</html>

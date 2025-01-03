@@ -1,13 +1,23 @@
-# vite project
-node_modules/
-package-lock.json
-dist/
-build/
-
-# python project
-.venv
-__pycache__/
+# python
+.venv/
 *.egg-info/
+__pycache__
 
-# other files
+# js, build
+node_modules/
+build/
+dist/
+
+# jatos
+jatos_mac_java/*
+!jatos_mac_java/study_assets_root/
+*.jzip
+
+# etc
+.DS_Store
+.vscode/
+data/
 original_files/
+temp/
+processed/
+zulu-transcription.jzip
