@@ -18,7 +18,7 @@
         <div class="flex flex-col bg-slate-300 items-end space-y-3 p-4 rounded-lg shadow-lg">
           <label>
             Zoom:
-            <input id="zoom" type="range" min="1" max="1000" value="100" />
+            <input id="zoom" type="range" min="1" max="200" value="100" />
           </label>
 
           <label for="speed">Playback Speed:</label>
@@ -177,7 +177,8 @@
         </div>
 
         <!-- Right section: Save controls -->
-        <div class="flex flex-col bg-slate-300 items-start space-y-3 p-4 rounded-lg shadow-lg">
+        <div class="flex flex-col bg-slate-300 items-center space-y-2 p-4 rounded-lg shadow-lg">
+          <!-- save controls -->
           <div class="flex flex-row">
             <button
               id="save"
@@ -192,11 +193,30 @@
               Save and Quit
             </button>
           </div>
-
+          
           <label>
             Mark as complete:
             <input id="completed" type="checkbox" />
           </label>
+          <!-- mark complete and undo/redo controls -->
+          <div class="flex flex-row">
+            <button
+              id="undo"
+              class="p-3 rounded-full focus:outline-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+              </svg>
+            </button>
+            <button
+              id="redo"
+              class="p-3 rounded-full focus:outline-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
       <div

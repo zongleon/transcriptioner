@@ -11,6 +11,7 @@ dist/
 # jatos
 jatos_mac_java/*
 !jatos_mac_java/study_assets_root/
+*.jzip
 
 # etc
 .DS_Store
