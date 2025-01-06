@@ -219,7 +219,7 @@ function createTranscriptionLine(tscript) {
     if (transcriptionElement.textContent == "") {
       transcriptionElement.textContent = "[TRANSCRIBE HERE]";
     }
-    transcriptionElement.removeAttribute("contenteditable");
+    // transcriptionElement.removeAttribute("contenteditable");
     let prevTs = transcripts.find((value) => {
       return value.id == tscript.id;
     });
