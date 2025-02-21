@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="jatos.js"></script>
+    `
+    <title>Transcription Demo</title>
+  </head>
+  <body class="overflow-hidden bg-white">
+    <div class="flex flex-col max-h-screen gap-2 text-black p-4">
+      <div id="waveform" class="flex-none w-full"></div>
+      <div
+        class="flex items-center justify-center space-x-6"
+      >
+        <!-- Left section: Audio playback settings -->
+        <div class="flex flex-col bg-slate-300 items-end space-y-3 p-4 rounded-lg shadow-lg">
+          <label>
+            Zoom:
+            <input id="zoom" type="range" min="1" max="200" value="100" />
+          </label>
+
+          <label for="speed">Playback Speed:</label>
+          <select id="speed"></select>
+        </div>
+
+        <!-- Middle section: Audio control buttons -->
+        <div class="flex flex-col bg-slate-300 items-center space-y-4 p-4 rounded-lg shadow-lg">
+          <!-- Main 5 audio controls -->
+          <div class="flex items-center space-x-6">
+            <!-- seek to start -->
+            <button
+              id="seekstart"
+              class="bg-gray-200 p-3 rounded-full hover:bg-gray-300 focus:outline-none"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 -960 960 960"
+                width="24px"
+                fill="#000000"
+              >
+                <path
+                  d="M220-240v-480h80v480h-80Zm520 0L380-480l360-240v480Zm-80-240Zm0 90v-180l-136 90 136 90Z"
+                />
+              </svg>
+            </button>
+
+            <!-- skip backwards -->
+            <button
+              id="back-10s"
+              class="bg-gray-200 p-3 rounded-full hover:bg-gray-300 focus:outline-none"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="size-6"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061A1.125 1.125 0 0 1 21 8.689v8.122ZM11.25 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061a1.125 1.125 0 0 1 1.683.977v8.122Z"
+                />
+              </svg>
+            </button>
+
+            <!-- play/pause toggle -->
+            <button
+              id="playpause"
+              class="bg-green-500 text-white p-4 rounded-full hover:bg-green-600 focus:outline-none"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="size-6 play"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
+                />
+              </svg>
+
+              <!-- pause icon -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="size-6 pause hidden"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 5.25v13.5m-7.5-13.5v13.5"
+                />
+              </svg>
+            </button>
+
+            <!-- skip forward -->
+            <button
+              id="fwd-10s"
+              class="bg-gray-200 p-3 rounded-full hover:bg-gray-300 focus:outline-none"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="size-6"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z"
+                />
+              </svg>
+            </button>
+
+            <!-- seek to end -->
+            <button
+              id="seekend"
+              class="bg-gray-200 p-3 rounded-full hover:bg-gray-300 focus:outline-none"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                height="24px"
+                viewBox="0 -960 960 960"
+                width="24px"
+                fill="#000000"
+              >
+                <path
+                  d="M660-240v-480h80v480h-80Zm-440 0v-480l360 240-360 240Zm80-240Zm0 90 136-90-136-90v180Z"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Play region and loop controls -->
+          <div class="flex items-center space-x-6">
+            <button
+              id="play-region"
+              class="bg-green-500 text-white p-3 rounded-full focus:outline-none"
+            >
+              Play region
+            </button>
+
+            <button
+              id="loop"
+              class="p-3 rounded-full hover:bg-gray-300 focus:outline-none"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="size-6"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right section: Save controls -->
+        <div class="flex flex-col bg-slate-300 items-center space-y-2 p-4 rounded-lg shadow-lg">
+          <!-- save controls -->
+          <div class="flex flex-row">
+            <!-- <button
+              disabled
+              id="save"
+              class="flex-none rounded-full h-12 w-16 bg-[#7289da] mr-1"
+            >
+              Save
+            </button> -->
+            <button
+              id="savequit"
+              class="flex-none rounded-full h-12 w-32 bg-[#7289da]"
+            >
+              Quit
+            </button>
+          </div>
+          
+          <label>
+            Mark as complete:
+            <input disabled id="completed" type="checkbox" />
+          </label>
+          <!-- mark complete and undo/redo controls -->
+          <div class="flex flex-row">
+            <button
+              id="undo"
+              class="p-3 rounded-full focus:outline-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+              </svg>
+            </button>
+            <button
+              id="redo"
+              class="p-3 rounded-full focus:outline-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m15 15 6-6m0 0-6-6m6 6H9a6 6 0 0 0 0 12h3" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div
+        id="transcription"
+        class="grow bg-slate-200 text-black text-2xl overflow-y-scroll scroll-smooth rounded-lg shadow-lg pl-2 mb-4"
+      ></div>
+    </div>
+    <script type="module" src="./demo.js"></script>
+  </body>
+</html>

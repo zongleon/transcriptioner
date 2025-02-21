@@ -7,6 +7,7 @@ export default defineConfig({
       input: {
         main: "src/index.html",
         intro: "src/intro.html",
+        demo: "src/demo.html",
       },
     },
   },

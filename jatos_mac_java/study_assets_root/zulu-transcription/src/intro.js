@@ -99,7 +99,11 @@ function addItem(idx, name, status) {
       transcription: name,
       status: status,
     };
-    jatos.startNextComponent();
+    if (id == 0) {
+      jatos.startComponentByTitle("Demo");
+    } else {
+      jatos.startNextComponent();
+    }
   };
 
   list.appendChild(newItem);
