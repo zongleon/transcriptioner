@@ -445,7 +445,15 @@ function saveTranscription() {
   // print end
   outstr += `[${wavesurfer.getDuration().toFixed(3)}]\n`;
 
+  // save file
+  const blob = new Blob([outstr], { type: "text/plain" });
+
+  let filename = currentTranscription.split(".")[0] + Date.now().toString() + ".txt";
+
   if (jatos !== undefined) {
+    if (completed.checked) {
+      jatos.uploadResultFile(blob, filename);
+    }
     jatos.batchSession
       .set(currentTranscription.replace("/", "\\"), {
         transcription: outstr,
