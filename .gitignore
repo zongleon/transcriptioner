@@ -17,6 +17,7 @@ jatos_mac_java/*
 .DS_Store
 .vscode/
 data/
+demodata/
 original_files/
 temp/
 processed/

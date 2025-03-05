@@ -1,4 +1,6 @@
 # a script to move files in/out of the jatos directory
+set -e
+
 BASE_DIR=$(git rev-parse --show-toplevel)
 JATOS_STUDY_DIR=$BASE_DIR/jatos_mac_java/study_assets_root/zulu-transcription
 SRC_DIR=$BASE_DIR/src

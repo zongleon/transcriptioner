@@ -5,7 +5,7 @@ import TimelinePlugin from "wavesurfer.js/dist/plugins/timeline.esm.js";
 import ProgressBar from "progressbar.js";
 
 // production
-const BUCKET_URL = "https://cdn.leonzong.com/";
+const SIGNER_URL = "https://factslab.org/get-signed-url?file=";
 // dev
 // const BUCKET_URL = "http://localhost:5432/";
 
@@ -24,7 +24,7 @@ let saveHandler = null;
 // also relating to the current, but will be initialized on load
 let wavesurfer;
 let bar;
-let startTime;
+let previousTime;
 let id;
 let data;
 let currentTranscription; // name of transcription
@@ -80,9 +80,9 @@ function autosave() {
 function clearState() {
   history = null;
   recall = null;
- 
+
   disableButton(undoBtn);
-  disableButton(redoBtn); 
+  disableButton(redoBtn);
 }
 
 function setHistory(tscript, type) {
@@ -130,8 +130,7 @@ function undo() {
     transcripts.find((v) => {
       return v.id == re.id;
     }).tscript = re.tscript;
-    document.getElementById("ts-" + r.id).textContent =
-      re.tscript;
+    document.getElementById("ts-" + r.id).textContent = re.tscript;
   } else if (history.type == "edit") {
     // undo a edit action
     // change the text to how it was
@@ -143,9 +142,12 @@ function undo() {
         // update text and transcript
         document.getElementById("ts-" + ts.id).textContent =
           history.tscript.tscript;
-        regions.getRegions().find((v) => {
-          return v.id == ts.id;
-        }).setOptions(history.tscript);
+        regions
+          .getRegions()
+          .find((v) => {
+            return v.id == ts.id;
+          })
+          .setOptions(history.tscript);
         ts.start = history.tscript.start;
         ts.end = history.tscript.end;
         ts.tscript = history.tscript.tscript;
@@ -178,9 +180,12 @@ function redo() {
         // actual recall action
         document.getElementById("ts-" + ts.id).textContent =
           recall.tscript.tscript;
-        regions.getRegions().find((v) => {
-          return v.id == ts.id;
-        }).setOptions(recall.tscript);
+        regions
+          .getRegions()
+          .find((v) => {
+            return v.id == ts.id;
+          })
+          .setOptions(recall.tscript);
         ts.start = recall.tscript.start;
         ts.end = recall.tscript.end;
         ts.tscript = recall.tscript.tscript;
@@ -418,6 +423,9 @@ function removeTranscription(id) {
 function saveTranscription() {
   sortTranscriptions();
   let regs = regions.getRegions();
+  let totalMark = 0;
+  let totalChar = 0;
+  let end = Date.now();
   // print header
   let outstr = "[0.000]\n<no-speech>\n";
   for (let tscript of transcripts) {
@@ -429,18 +437,15 @@ function saveTranscription() {
     outstr += `${tscript.tscript}\n`;
     outstr += `[${reg.end.toFixed(3)}]\n`;
     outstr += `<no-speech>\n`;
+
+    // stats
+    totalChar += tscript.tscript.length;
+    totalMark += reg.end - reg.start;
   }
   // print end
   outstr += `[${wavesurfer.getDuration().toFixed(3)}]\n`;
-  // save file
-  const blob = new Blob([outstr], { type: "text/plain" });
 
-  let filename =
-    currentTranscription.split("/")[1].replace(".mp3", "").replace(/\s/g, "") +
-    Date.now().toString() +
-    ".txt";
   if (jatos !== undefined) {
-    jatos.uploadResultFile(blob, filename);
     jatos.batchSession
       .set(currentTranscription.replace("/", "\\"), {
         transcription: outstr,
@@ -448,8 +453,16 @@ function saveTranscription() {
       })
       .then(() => console.log("Batch Session was successfully updated"))
       .catch(() => console.log("Batch Session synchronization failed"));
-    jatos.submitResultData({ start: startTime, finish: Date.now(), id: id });
+    jatos.appendResultData({ 
+      id: id,
+      transcription: currentTranscription,
+      start: previousTime,
+      end: end,
+      totalMark: totalMark,
+      totalChar: totalChar,
+    });
   }
+  previousTime = end;
 }
 
 function setPlayPauseIcon(showPlay) {
@@ -744,11 +757,7 @@ save.onclick = () => {
 savequit.onclick = () => {
   savequit.innerHTML = "Saved ✅";
   saveTranscription();
-  jatos.startComponentByPos(1, {
-    start: startTime,
-    finish: Date.now(),
-    id: id,
-  });
+  jatos.startComponentByPos(1);
 };
 
 speeds.forEach((s) => {
@@ -764,6 +773,22 @@ speeds.forEach((s) => {
   speed.appendChild(option);
 });
 
+function getPresignedUrl(file) {
+  return fetch(SIGNER_URL + encodeURIComponent(file))
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("Failed to get presigned URL for " + file);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (!data.signedUrl) {
+        throw new Error("Missing signedUrl in response for " + file);
+      }
+      return data.signedUrl;
+    });
+}
+
 jatos.onLoad(() => {
   if (jatos.studySessionData === undefined || jatos.studySessionData == null) {
     jatos.endStudy("NO SESSION DATA");
@@ -777,28 +802,41 @@ jatos.onLoad(() => {
   completed.checked = jatos.studySessionData.status == "COMPLETED";
 
   // get data like {current: str, status: str}
-  data = jatos.batchSession.get(currentTranscription.replace("/", "\\"));
+  data = jatos.batchSession.get(currentTranscription);
   console.log(data);
 
   if (data !== undefined) {
-    initializeWavesurfer(BUCKET_URL + currentTranscription, data.transcription);
+    // If transcription data exists, get the presigned URL for the audio file.
+    getPresignedUrl(currentTranscription)
+      .then(audioUrl => {
+        initializeWavesurfer(audioUrl, data.transcription);
+      })
+      .catch(error => {
+        alert("Error: " + error.message);
+      });
   } else {
+    // If no transcription data, fetch the transcription text first.
     let starterText = currentTranscription.split(".")[0] + ".txt";
-    fetch(BUCKET_URL + starterText)
-      .then((response) => {
-        if (response.ok) {
-          return response.text();
+    getPresignedUrl(starterText)
+      .then(textUrl => fetch(textUrl))
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch the transcription text");
         }
-        throw new Error("Something went wrong");
+        return response.text();
       })
-      .then((text) => {
-        initializeWavesurfer(BUCKET_URL + currentTranscription, text);
+      .then(text => {
+        // After obtaining the text, get the presigned URL for the audio file.
+        return getPresignedUrl(currentTranscription)
+          .then(audioUrl => {
+            initializeWavesurfer(audioUrl, text);
+          });
       })
-      .catch((error) => {
-        initializeWavesurfer(BUCKET_URL + currentTranscription, "");
+      .catch(error => {
+        alert("Error: " + error.message);
       });
   }
 
   // keep start time to upload total time transcriptioning as result
-  startTime = Date.now();
+  previousTime = Date.now();
 });
