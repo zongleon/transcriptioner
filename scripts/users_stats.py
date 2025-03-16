@@ -1,10 +1,10 @@
 import pandas as pd
 
 PRINT_USERS = False
-JATOS_PROCESS = False
+JATOS_PROCESS = True
 MINUTES = True
 
-DATA_FILE = "../data/jatos_results_data_20250306172600.json"
+DATA_FILE = "../data/jatos_results_data_20250316225404.json"
 OUTPUT_NAME = "../stats"
 
 if PRINT_USERS:
