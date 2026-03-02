@@ -1,9 +1,10 @@
 import os
 import re
+import sys
 from collections import defaultdict
 
-input_dir = "../data/inprogress"
-output_dir = "../data/transcripts"
+input_dir = sys.argv[1]
+output_dir = sys.argv[2]
 
 
 def find_latest_txt_files(input_dir, output_dir):
