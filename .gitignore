@@ -13,10 +13,14 @@ jatos_mac_java/*
 !jatos_mac_java/study_assets_root/
 *.jzip
 
+# tokens
+.env
+
 # etc
 .DS_Store
 .vscode/
 data/
+stats/
 demodata/
 original_files/
 temp/
